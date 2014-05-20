@@ -1,0 +1,13 @@
+// $Id$
+// vim:ft=javascript
+
+// If your extension references something external, use ARG_WITH
+// ARG_WITH("lmdb", "for lmdb support", "no");
+
+// Otherwise, use ARG_ENABLE
+// ARG_ENABLE("lmdb", "enable lmdb support", "no");
+
+if (PHP_LMDB != "no") {
+	EXTENSION("lmdb", "lmdb.c");
+}
+
