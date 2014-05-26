@@ -96,7 +96,7 @@ ZEND_END_ARG_INFO()
  */
 const zend_function_entry lmdb_functions[] = {
 	PHP_FE(mdb_version, void_arg)
-//	PHP_FE(mdb_strerror, int_arg)
+	PHP_FE(mdb_strerror, int_arg)
 	PHP_FE_END	/* Must be the last line in lmdb_functions[] */
 };
 
@@ -148,7 +148,14 @@ PHP_FUNCTION(mdb_version) {
 /* {{{ proto string mdb_strerror(int err)
    Return a string describing a given error code. */
 PHP_FUNCTION(mdb_strerror) {
-	RETURN_TRUE;
+	int err_code;
+	char *error_str;
+	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "l",
+                        &err_code) == FAILURE) {
+                return;
+        }
+	error_str = mdb_strerror(err_code);
+	RETURN_STRING(error_str,1);
 }
 
 /* Objects */

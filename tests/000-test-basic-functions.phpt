@@ -6,16 +6,11 @@ lmdb - info functions
 <?php
 $functions = get_defined_functions();
 var_dump(in_array("mdb_version", $functions["internal"]));
-var_dump(mdb_version());
+var_dump(in_array("mdb_strerror", $functions["internal"]));
+var_dump(count(mdb_version()));
+var_dump(mdb_strerror(0));
 --EXPECTF--
 bool(true)
-array(4) {
-  ["version"]=>
-  string(30) "MDB 0.9.11: (January 15, 2014)"
-  ["major"]=>
-  int(0)
-  ["minor"]=>
-  int(9)
-  ["patch"]=>
-  int(11)
-}
+bool(true)
+int(4)
+%s
