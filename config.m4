@@ -24,7 +24,6 @@ if test "$PHP_LMDB" != "no"; then
 	  AC_MSG_RESULT(lmdb lib found in $i/lib)
     fi
 
-	dnl from Leveldb build dir
     if test -r $i/$SEARCH_LIB.a || test -r $i/$SEARCH_LIB.$SHLIB_SUFFIX_NAME; then
 	  LMDB_LIB_DIR=$i
 	  AC_MSG_RESULT(lmdb lib found in $i)
