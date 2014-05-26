@@ -84,6 +84,10 @@
                                                                 \
   return retval;
 
+/* arg info */
+ZEND_BEGIN_ARG_INFO_EX(arginfo_lmdb_void, 0, 0, 0)
+ZEND_END_ARG_INFO()
+
 
 
 /* {{{ lmdb_functions[]
@@ -120,7 +124,7 @@ ZEND_GET_MODULE(lmdb)
 /* Objects */
 typedef struct {
 	zend_object std;
-	MDB_env *val;
+	MDB_env *env;
 } lmdb_env_object;
 
 typedef struct {
@@ -135,9 +139,21 @@ static zend_object_handlers lmdb_object_handlers;
 static zend_object_handlers lmdb_iterator_object_handlers;
 
 /* Class entries */
+/* {{{ proto LevelDB LevelDB::__construct(string $name [, array $options [, array $readoptions [, array $writeoptions]]])
+   Instantiates a LevelDB object and opens the give database */
+PHP_METHOD(lmdb_env, __construct)
+{
+	lmdb_env_object * intern = (lmdb_env_object *)zend_object_store_get_object(getThis() TSRMLS_CC);
+	mdb_env_create	(& (intern->env));
+}
+
 zend_class_entry *php_lmdb_env_class_entry;
 zend_class_entry *php_lmdb_val_class_entry;
 
+static zend_function_entry php_lmdb_env_class_methods[] = {
+        PHP_ME(lmdb_env, __construct, arginfo_lmdb_void , ZEND_ACC_PUBLIC | ZEND_ACC_CTOR)
+	PHP_FE_END
+};
 
 static zend_function_entry php_lmdb_val_class_methods[] = {
 	PHP_FE_END
@@ -175,7 +191,7 @@ PHP_MINIT_FUNCTION(lmdb)
 	memcpy(&lmdb_iterator_object_handlers, zend_get_std_object_handlers(), sizeof(zend_object_handlers));
 
 	/* Register Lmdb Env Class */
-	INIT_CLASS_ENTRY(ce, "Lmdb\\Env", php_lmdb_val_class_methods);
+	INIT_CLASS_ENTRY(ce, "Lmdb\\Env", php_lmdb_env_class_methods);
 	ce.create_object = php_lmdb_env_object_new;
 	php_lmdb_env_class_entry = zend_register_internal_class(&ce TSRMLS_CC);
 
