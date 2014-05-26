@@ -42,6 +42,9 @@ PHP_RINIT_FUNCTION(lmdb);
 PHP_RSHUTDOWN_FUNCTION(lmdb);
 PHP_MINFO_FUNCTION(lmdb);
 
+PHP_FUNCTION(mdb_version);
+PHP_FUNCTION(mdb_strerror);
+
 #ifdef ZTS
 #define LDB_G(v) TSRMG(lmdb_globals_id, zend_lmdb_globals *, v)
 #else

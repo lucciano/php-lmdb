@@ -85,16 +85,21 @@
   return retval;
 
 /* arg info */
-ZEND_BEGIN_ARG_INFO_EX(arginfo_lmdb_void, 0, 0, 0)
+ZEND_BEGIN_ARG_INFO(void_arg, 0)
 ZEND_END_ARG_INFO()
 
-
+ZEND_BEGIN_ARG_INFO(int_arg, 0)
+ZEND_ARG_INFO(0, err)
+ZEND_END_ARG_INFO()
 
 /* {{{ lmdb_functions[]
  */
 const zend_function_entry lmdb_functions[] = {
+	PHP_FE(mdb_version, void_arg)
+//	PHP_FE(mdb_strerror, int_arg)
 	PHP_FE_END	/* Must be the last line in lmdb_functions[] */
 };
+
 /* }}} */
 
 /* {{{ lmdb_module_entry
@@ -120,6 +125,31 @@ zend_module_entry lmdb_module_entry = {
 #ifdef COMPILE_DL_LMDB
 ZEND_GET_MODULE(lmdb)
 #endif
+
+/* {{{ proto array mdb_version()
+   Return the mdb library version information. */
+PHP_FUNCTION(mdb_version) {
+
+    array_init(return_value);
+
+
+	int major;
+	int minor;
+	int patch;
+	char* mdb_version_str = mdb_version(&major, &minor, &patch);
+    add_assoc_string_ex(return_value, "version", sizeof("version"), mdb_version_str,0);
+    add_assoc_long(return_value, "major", major);
+    add_assoc_long(return_value, "minor", minor);
+    add_assoc_long(return_value, "patch", patch);
+
+    RETVAL_ZVAL(return_value,1,0);
+}
+
+/* {{{ proto string mdb_strerror(int err)
+   Return a string describing a given error code. */
+PHP_FUNCTION(mdb_strerror) {
+	RETURN_TRUE;
+}
 
 /* Objects */
 typedef struct {
@@ -151,7 +181,7 @@ zend_class_entry *php_lmdb_env_class_entry;
 zend_class_entry *php_lmdb_val_class_entry;
 
 static zend_function_entry php_lmdb_env_class_methods[] = {
-        PHP_ME(lmdb_env, __construct, arginfo_lmdb_void , ZEND_ACC_PUBLIC | ZEND_ACC_CTOR)
+        PHP_ME(lmdb_env, __construct, void_arg, ZEND_ACC_PUBLIC | ZEND_ACC_CTOR)
 	PHP_FE_END
 };
 
