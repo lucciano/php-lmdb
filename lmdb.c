@@ -98,6 +98,13 @@ ZEND_ARG_INFO(0, flags)
 ZEND_ARG_INFO(0, mode)
 ZEND_END_ARG_INFO()
 
+ZEND_BEGIN_ARG_INFO(env_set_mapsize_arg, 0)
+ZEND_ARG_INFO(0, size)
+ZEND_END_ARG_INFO()
+
+ZEND_BEGIN_ARG_INFO(env_set_maxdbs_arg, 0)
+ZEND_ARG_INFO(0, size)
+ZEND_END_ARG_INFO()
 
 /* {{{ lmdb_functions[]
  */
@@ -210,12 +217,43 @@ PHP_METHOD(lmdb_env, open)
                 return;
         }
 	flags = (unsigned int)p_flags; 
-	mode = (mdb_mode_t)  p_mode;
+	if(p_mode != 0){
+		mode = (mdb_mode_t)  p_mode;
+	}else{
+		mode = 0666;
+	}
 
 	rtr = mdb_env_open(intern->env, path, flags, mode);
 	//TODO: throw exception instace of returning error code.
         RETURN_LONG(rtr);
-	
+}
+
+/* {{{ proto lmDB\\Env::set_mapsize(size_t)
+  Set the size of the memory map to use for this environment.*/
+PHP_METHOD(lmdb_env, set_mapsize)
+{
+	size_t size = 0;
+	int rtr;
+	lmdb_env_object * intern = (lmdb_env_object *)zend_object_store_get_object(getThis() TSRMLS_CC);
+	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "l", &size) == FAILURE) {
+                return;
+        }
+	rtr = mdb_env_set_mapsize(intern->env, size);
+        RETURN_LONG(rtr);
+}
+
+/* {{{ proto lmDB\\Env::set_maxdbs(int)
+  Set the maximum number of named databases for the environment.*/
+PHP_METHOD(lmdb_env, set_maxdbs)
+{
+	int dbs = 0;
+	int rtr;
+	lmdb_env_object * intern = (lmdb_env_object *)zend_object_store_get_object(getThis() TSRMLS_CC);
+	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "l", &dbs) == FAILURE) {
+                return;
+        }
+	rtr = mdb_env_set_mapsize(intern->env, dbs);
+        RETURN_LONG(rtr);
 }
 
 zend_class_entry *php_lmdb_env_class_entry;
@@ -224,6 +262,8 @@ zend_class_entry *php_lmdb_val_class_entry;
 static zend_function_entry php_lmdb_env_class_methods[] = {
         PHP_ME(lmdb_env, __construct, void_arg, ZEND_ACC_PUBLIC | ZEND_ACC_CTOR)
         PHP_ME(lmdb_env, open, env_open_arg, ZEND_ACC_PUBLIC )
+        PHP_ME(lmdb_env, set_mapsize, env_set_mapsize_arg, ZEND_ACC_PUBLIC )
+        PHP_ME(lmdb_env, set_maxdbs, env_set_maxdbs_arg, ZEND_ACC_PUBLIC )
 	PHP_FE_END
 };
 
