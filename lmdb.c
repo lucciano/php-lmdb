@@ -92,6 +92,13 @@ ZEND_BEGIN_ARG_INFO(int_arg, 0)
 ZEND_ARG_INFO(0, err)
 ZEND_END_ARG_INFO()
 
+ZEND_BEGIN_ARG_INFO(env_open_arg, 0)
+ZEND_ARG_INFO(0, path)
+ZEND_ARG_INFO(0, flags)
+ZEND_ARG_INFO(0, mode)
+ZEND_END_ARG_INFO()
+
+
 /* {{{ lmdb_functions[]
  */
 const zend_function_entry lmdb_functions[] = {
@@ -176,12 +183,39 @@ static zend_object_handlers lmdb_object_handlers;
 static zend_object_handlers lmdb_iterator_object_handlers;
 
 /* Class entries */
-/* {{{ proto LevelDB LevelDB::__construct(string $name [, array $options [, array $readoptions [, array $writeoptions]]])
-   Instantiates a LevelDB object and opens the give database */
+/* {{{ proto lmDB\\Env::__construct()
+   Instantiates a LmDB\\Env object*/
 PHP_METHOD(lmdb_env, __construct)
 {
 	lmdb_env_object * intern = (lmdb_env_object *)zend_object_store_get_object(getThis() TSRMLS_CC);
-	mdb_env_create	(& (intern->env));
+	int rtr = mdb_env_create	(& (intern->env));
+	//@TODO: throw exception if rtr != 0;
+}
+
+/* {{{ proto lmDB\\Env::open($path, [$flags=0 [, $mode=0666]])
+   Open a data base */
+PHP_METHOD(lmdb_env, open)
+{
+	char * path;
+	int path_len;
+	long p_flags=0, p_mode=0;
+	unsigned int flags = 0; 
+	mdb_mode_t mode = 0;
+	int rtr ;
+
+	lmdb_env_object * intern = (lmdb_env_object *)zend_object_store_get_object(getThis() TSRMLS_CC);
+
+	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "s|ll",
+                        &path, &path_len, &p_flags, &p_mode) == FAILURE) {
+                return;
+        }
+	flags = (unsigned int)p_flags; 
+	mode = (mdb_mode_t)  p_mode;
+
+	rtr = mdb_env_open(intern->env, path, flags, mode);
+	//TODO: throw exception instace of returning error code.
+        RETURN_LONG(rtr);
+	
 }
 
 zend_class_entry *php_lmdb_env_class_entry;
@@ -189,6 +223,7 @@ zend_class_entry *php_lmdb_val_class_entry;
 
 static zend_function_entry php_lmdb_env_class_methods[] = {
         PHP_ME(lmdb_env, __construct, void_arg, ZEND_ACC_PUBLIC | ZEND_ACC_CTOR)
+        PHP_ME(lmdb_env, open, env_open_arg, ZEND_ACC_PUBLIC )
 	PHP_FE_END
 };
 
@@ -245,7 +280,7 @@ PHP_MINIT_FUNCTION(lmdb)
 	REGISTER_LONG_CONSTANT("MDB_NOSUBDIR", MDB_NOSUBDIR, CONST_CS | CONST_PERSISTENT);
 	REGISTER_LONG_CONSTANT("MDB_RDONLY", MDB_RDONLY, CONST_CS | CONST_PERSISTENT);
 	REGISTER_LONG_CONSTANT("MDB_WRITEMAP", MDB_WRITEMAP, CONST_CS | CONST_PERSISTENT);
-	REGISER_LONG_CONSTANT("MDB_NOMETASYNC", MDB_NOMETASYNC, CONST_CS | CONST_PERSISTENT);
+	REGISTER_LONG_CONSTANT("MDB_NOMETASYNC", MDB_NOMETASYNC, CONST_CS | CONST_PERSISTENT);
 	REGISTER_LONG_CONSTANT("MDB_NOSYNC", MDB_NOSYNC, CONST_CS | CONST_PERSISTENT);
 	REGISTER_LONG_CONSTANT("MDB_MAPASYNC", MDB_MAPASYNC, CONST_CS | CONST_PERSISTENT);
 	REGISTER_LONG_CONSTANT("MDB_NOTLS", MDB_NOTLS, CONST_CS | CONST_PERSISTENT);
