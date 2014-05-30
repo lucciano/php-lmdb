@@ -188,7 +188,7 @@ typedef struct {
 typedef struct {
 	zend_object std;
 	MDB_txn *txn;
-} lmdb_tnx_object;
+} lmdb_txn_object;
 
 typedef struct {
 	zend_object std;
@@ -202,6 +202,10 @@ static zend_object_handlers lmdb_object_handlers;
 static zend_object_handlers lmdb_iterator_object_handlers;
 
 /* Class entries */
+zend_class_entry *php_lmdb_env_class_entry;
+zend_class_entry *php_lmdb_val_class_entry;
+zend_class_entry *php_lmdb_txn_class_entry;
+
 /* {{{ proto lmDB\\Env::__construct()
    Instantiates a LmDB\\Env object*/
 PHP_METHOD(lmdb_env, __construct)
@@ -272,20 +276,28 @@ PHP_METHOD(lmdb_env, set_maxdbs)
   Create a transaction for use with the environment. */
 PHP_METHOD(lmdb_env, tnx_begin)
 {
-	zval *zptr = 0, *rtr = 0;
+	zval *zptr = 0;
 	long p_flags = 0;
 	unsigned int flags = 0;
 	lmdb_env_object * intern = (lmdb_env_object *)zend_object_store_get_object(getThis() TSRMLS_CC);
+	lmdb_txn_object * txn;
 	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "z!l", &zptr, &p_flags) == FAILURE) {
                 return;
         }
 	flags = (unsigned int) p_flags;
-	rtr = mdb_env_tnx_begin(intern->env, NULL, flags, );
-        RETURN_LONG(rtr);
-}
 
-zend_class_entry *php_lmdb_env_class_entry;
-zend_class_entry *php_lmdb_val_class_entry;
+	object_init_ex(return_value, php_lmdb_txn_class_entry);
+
+        zend_call_method(&return_value, php_lmdb_txn_class_entry,
+                &php_lmdb_txn_class_entry->constructor, "__construct", sizeof("__construct") - 1,
+                NULL, 0, NULL, NULL TSRMLS_CC);
+
+	txn = (lmdb_txn_object *)zend_object_store_get_object(return_value);
+
+
+	mdb_txn_begin (intern->env, NULL, flags, &txn->txn);
+	//TODO : return the function's result or throw an exception if return non-zero.
+}
 
 static zend_function_entry php_lmdb_env_class_methods[] = {
         PHP_ME(lmdb_env, __construct, void_arg, ZEND_ACC_PUBLIC | ZEND_ACC_CTOR)
@@ -302,7 +314,7 @@ static zend_function_entry php_lmdb_val_class_methods[] = {
 
 static zend_function_entry php_lmdb_txn_class_methods[] = {
 	PHP_FE_END
-}
+};
 
 void php_lmdb_txn_object_free(void *object TSRMLS_DC)
 {
@@ -355,14 +367,13 @@ PHP_MINIT_FUNCTION(lmdb)
 	ce.create_object = php_lmdb_val_object_new;
 	php_lmdb_val_class_entry = zend_register_internal_class(&ce TSRMLS_CC);
 
+	zend_declare_property_long(php_lmdb_val_class_entry, "mv_size", strlen("mv_size"), 0, ZEND_ACC_PUBLIC TSRMLS_CC);
+	zend_declare_property_null(php_lmdb_val_class_entry, "mv_data", strlen("mv_data"),  ZEND_ACC_PUBLIC TSRMLS_CC);
+
 	/* Register Lmdb txn Class */
 	INIT_CLASS_ENTRY(ce, "Lmdb\\Txn", php_lmdb_txn_class_methods);
 	ce.create_object = php_lmdb_txn_object_new;
-	php_lmdb_val_class_entry = zend_register_internal_class(&ce TSRMLS_CC);
-
-
-	zend_declare_property_long(php_lmdb_val_class_entry, "mv_size", strlen("mv_size"), 0, ZEND_ACC_PUBLIC TSRMLS_CC);
-	zend_declare_property_null(php_lmdb_val_class_entry, "mv_data", strlen("mv_data"),  ZEND_ACC_PUBLIC TSRMLS_CC);
+	php_lmdb_txn_class_entry = zend_register_internal_class(&ce TSRMLS_CC);
 
         /* Register constants */
 	REGISTER_LONG_CONSTANT("MDB_FIXEDMAP", MDB_FIXEDMAP, CONST_CS | CONST_PERSISTENT);
