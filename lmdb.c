@@ -284,11 +284,11 @@ PHP_METHOD(lmdb_env, set_maxdbs)
   Create a transaction for use with the environment. */
 PHP_METHOD(lmdb_env, tnx_begin)
 {
-	printf("lmdb_env,begin\n");
+	printf("lmdb_env,tnx_begin\n");
 	zval *zptr = 0;
 	zval **params[3];
-	zval * z_fname;
-	Z_STRVAL_P(z_fname) = "__construct";
+	zval z_fname;
+	ZVAL_STRING(&z_fname, "__construct",1);
 	long p_flags = 0;
 	unsigned int flags = 0;
 	zend_fcall_info fci;
@@ -298,10 +298,11 @@ PHP_METHOD(lmdb_env, tnx_begin)
                 return;
         }
 
-	params[0] = getThis();
-	params[1] = zptr;
+	params[0] = &getThis();
+	if(zptr == NULL) printf("NULL...***\n");
+	params[1] = &zptr;
 	//flags = (unsigned int) p_flags;
-	ZVAL_LONG(params[2], p_flags);
+	//ZVAL_LONG(params[2], p_flags);
 
 	object_init_ex(return_value, php_lmdb_txn_class_entry);
 
@@ -310,14 +311,17 @@ PHP_METHOD(lmdb_env, tnx_begin)
         fci.object_ptr = return_value;
         fci.function_name = &z_fname;
         fci.retval_ptr_ptr = &return_value;
-        fci.param_count = 3;
-        fci.params = params;
+        fci.param_count = 2;
+	fci.params = params;
+
         fci.no_separation = 1;
         fci.symbol_table = NULL;
 
 	if(zend_call_function(&fci, NULL TSRMLS_CC) == FAILURE){
 		//TODO: throw a new Exception
 		printf("Error .... \n");
+	}else{
+		printf("OK! .... \n");
 	}
 
 	//TODO : return the function's result or throw an exception if return non-zero.
@@ -327,10 +331,10 @@ PHP_METHOD(lmdb_env, tnx_begin)
    Instantiates a LmDB\\Tnx object*/
 PHP_METHOD(lmdb_txn, __construct)
 {
+	printf("lmdb_txn,__construct\n");
 	zval *env = 0, *tnx = 0;
 	long p_flags = 0;
 	unsigned int flags = 0;
-	printf("lmdb_txn,__construct\n");
 	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "z!z!l!", &env, &tnx, &p_flags) == FAILURE) {
                 return;
         }
