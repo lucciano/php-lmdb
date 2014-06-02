@@ -111,6 +111,14 @@ ZEND_ARG_INFO(0, parent)
 ZEND_ARG_INFO(0, flags)
 ZEND_END_ARG_INFO()
 
+ZEND_BEGIN_ARG_INFO(tnx_construct_arg, 0)
+ZEND_ARG_INFO(0, env)
+ZEND_ARG_INFO(0, parent)
+ZEND_ARG_INFO(0, flags)
+ZEND_END_ARG_INFO()
+
+
+
 
 
 /* {{{ lmdb_functions[]
@@ -276,27 +284,57 @@ PHP_METHOD(lmdb_env, set_maxdbs)
   Create a transaction for use with the environment. */
 PHP_METHOD(lmdb_env, tnx_begin)
 {
+	printf("lmdb_env,begin\n");
 	zval *zptr = 0;
+	zval **params[3];
+	zval * z_fname;
+	Z_STRVAL_P(z_fname) = "__construct";
 	long p_flags = 0;
 	unsigned int flags = 0;
-	lmdb_env_object * intern = (lmdb_env_object *)zend_object_store_get_object(getThis() TSRMLS_CC);
+	zend_fcall_info fci;
+
 	lmdb_txn_object * txn;
 	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "z!l", &zptr, &p_flags) == FAILURE) {
                 return;
         }
-	flags = (unsigned int) p_flags;
+
+	params[0] = getThis();
+	params[1] = zptr;
+	//flags = (unsigned int) p_flags;
+	ZVAL_LONG(params[2], p_flags);
 
 	object_init_ex(return_value, php_lmdb_txn_class_entry);
 
-        zend_call_method(&return_value, php_lmdb_txn_class_entry,
-                &php_lmdb_txn_class_entry->constructor, "__construct", sizeof("__construct") - 1,
-                NULL, 0, NULL, NULL TSRMLS_CC);
+	fci.size = sizeof(fci);
+        fci.function_table = php_lmdb_txn_class_entry;
+        fci.object_ptr = return_value;
+        fci.function_name = &z_fname;
+        fci.retval_ptr_ptr = &return_value;
+        fci.param_count = 3;
+        fci.params = params;
+        fci.no_separation = 1;
+        fci.symbol_table = NULL;
 
-	txn = (lmdb_txn_object *)zend_object_store_get_object(return_value);
+	if(zend_call_function(&fci, NULL TSRMLS_CC) == FAILURE){
+		//TODO: throw a new Exception
+		printf("Error .... \n");
+	}
 
-
-	mdb_txn_begin (intern->env, NULL, flags, &txn->txn);
 	//TODO : return the function's result or throw an exception if return non-zero.
+}
+
+/* {{{ proto lmDB\\Tnx::__construct(Lmdb\Env, Lmdb\Tnx = NULL, flags)
+   Instantiates a LmDB\\Tnx object*/
+PHP_METHOD(lmdb_txn, __construct)
+{
+	zval *env = 0, *tnx = 0;
+	long p_flags = 0;
+	unsigned int flags = 0;
+	printf("lmdb_txn,__construct\n");
+	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "z!z!l!", &env, &tnx, &p_flags) == FAILURE) {
+                return;
+        }
+	//txn = (lmdb_txn_object *)zend_object_store_get_object(return_value);
 }
 
 static zend_function_entry php_lmdb_env_class_methods[] = {
@@ -313,6 +351,7 @@ static zend_function_entry php_lmdb_val_class_methods[] = {
 };
 
 static zend_function_entry php_lmdb_txn_class_methods[] = {
+        PHP_ME(lmdb_txn, __construct, tnx_construct_arg, ZEND_ACC_PUBLIC | ZEND_ACC_CTOR)
 	PHP_FE_END
 };
 
